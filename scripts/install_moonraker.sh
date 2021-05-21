@@ -66,6 +66,9 @@ moonraker_setup_dialog(){
   ### initial moonraker.conf path check
   check_klipper_cfg_path
 
+  ### check for klipper_log folder
+  [ ! -d "${HOME}"/klipper_logs ] && mkdir -p "${HOME}"/klipper_logs
+
   ### ask user how to handle OctoPrint, Haproxy and Lighttpd
   process_octoprint_dialog
   process_haproxy_lighttpd_dialog
@@ -177,7 +180,7 @@ create_moonraker_service(){
   CFG_PATH="$klipper_cfg_loc"
   MR_ENV=$MOONRAKER_ENV
   MR_DIR=$MOONRAKER_DIR
-  MR_LOG="/tmp/moonraker.log"
+  MR_LOG="${HOME}/klipper_logs/moonraker.log"
   MR_CONF="$CFG_PATH/moonraker.conf"
   MR_SERV_SRC="${SRCDIR}/kiauh/resources/moonraker.service"
   MR_SERV_TARGET="$SYSTEMDDIR/moonraker.service"
@@ -211,7 +214,7 @@ create_moonraker_service(){
       CFG_PATH="$klipper_cfg_loc/printer_$i"
       MR_SERV_TARGET="$SYSTEMDDIR/moonraker-$i.service"
       MR_CONF="$CFG_PATH/moonraker.conf"
-      MR_LOG="/tmp/moonraker-$i.log"
+      MR_LOG="${HOME}/klipper_logs/moonraker-$i.log"
       ### write multi instance service
       write_mr_service
       ### enable instance
@@ -246,6 +249,7 @@ create_moonraker_conf(){
   CFG_PATH="$klipper_cfg_loc"
   MR_CONF="$CFG_PATH/moonraker.conf"
   MR_DB="~/.moonraker_database"
+  MR_LOG="~/klipper_logs"
   KLIPPY_UDS="/tmp/klippy_uds"
   MR_CONF_SRC="${SRCDIR}/kiauh/resources/moonraker.conf"
   mr_ip_list=()
@@ -260,6 +264,7 @@ create_moonraker_conf(){
         sed -i "s|%PORT%|$PORT|" $MR_CONF
         sed -i "s|%CFG%|$CFG_PATH|" $MR_CONF
         sed -i "s|%MR_DB%|$MR_DB|" $MR_CONF
+        sed -i "s|%LOG%|$MR_LOG|" $MR_CONF
         sed -i "s|%UDS%|$KLIPPY_UDS|" $MR_CONF
         sed -i "s|%LAN%|$LAN|" $MR_CONF
         sed -i "s|%USER%|${USER}|g" $MR_CONF

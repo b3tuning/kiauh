@@ -62,6 +62,30 @@ update_all(){
   done
 }
 
+update_log_paths(){
+  [ ! -d "${HOME}"/klipper_logs ] && mkdir -p "${HOME}"/klipper_logs
+  # assign a new logfile location to reflect the new moonraker log_path option
+  # (https://github.com/Arksine/moonraker/commit/829b3a4ee80579af35dd64a37ccc092a1f67682a)
+  shopt -s extglob # enable extended globbing
+  FILE="$SYSTEMDDIR/$1?(-*([0-9])).service"
+  SERVICE_FILES=$(ls $FILE 2>/dev/null 1>&2)
+  LDIR="${HOME}/klipper_logs"
+  if $SERVICE_FILES; then
+    for service in $(find $FILE); do
+      if ! grep -E "\/klipper_logs\/" $service 2>/dev/null 1>&2; then
+      status_msg "Updating $service ..."
+      [ "$1" == "klipper" ] && LFILE="klippy"
+      [ "$1" == "moonraker" ] && LFILE="moonraker"
+      sudo sed -i -r "/ExecStart=/ s|-l \/tmp\/$LFILE|-l $LDIR/$LFILE|" $service
+      ok_msg "$service updated!"
+      fi
+    done
+    ### reloading units
+    sudo systemctl daemon-reload
+  fi
+  shopt -u extglob # disable extended globbing
+}
+
 update_klipper(){
   klipper_service "stop"
   if [ ! -d $KLIPPER_DIR ]; then
@@ -93,9 +117,9 @@ update_klipper(){
       $PYTHONDIR/bin/pip install -r $KLIPPER_DIR/scripts/klippy-requirements.txt
       ok_msg "Dependencies have been installed!"
     fi
-
-    ok_msg "Update complete!"
   fi
+  update_log_paths "klipper"
+  ok_msg "Update complete!"
   klipper_service "restart"
 }
 
@@ -148,7 +172,7 @@ update_moonraker(){
     ${PYTHONDIR}/bin/pip install -r $MOONRAKER_DIR/scripts/moonraker-requirements.txt
     ok_msg "Dependencies have been installed!"
   fi
-
+  update_log_paths "moonraker"
   ok_msg "Update complete!"
   moonraker_service "restart"
 }
