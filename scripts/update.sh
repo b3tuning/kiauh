@@ -70,15 +70,18 @@ update_log_paths(){
   FILE="$SYSTEMDDIR/$1?(-*([0-9])).service"
   SERVICE_FILES=$(ls $FILE 2>/dev/null 1>&2)
   LDIR="${HOME}/klipper_logs"
+  [ "$1" == "klipper" ] && LFILE="klippy"
+  [ "$1" == "moonraker" ] && LFILE="moonraker"
   if $SERVICE_FILES; then
     for service in $(find $FILE); do
-      if ! grep -E "\/klipper_logs\/" $service 2>/dev/null 1>&2; then
-      status_msg "Updating $service ..."
-      [ "$1" == "klipper" ] && LFILE="klippy"
-      [ "$1" == "moonraker" ] && LFILE="moonraker"
-      sudo sed -i -r "/ExecStart=/ s|-l \/tmp\/$LFILE|-l $LDIR/$LFILE|" $service
-      ok_msg "$service updated!"
+      if ! grep -E "\-l \/tmp\/" $service 2>/dev/null 1>&2; then
+        status_msg "Updating $service ..."
+        sudo sed -i -r "/ExecStart=/ s|$| -l $LDIR\/$LFILE.log|" $service
+      elif ! grep -E "\/klipper_logs\/" $service 2>/dev/null 1>&2; then
+        status_msg "Updating $service ..."
+        sudo sed -i -r "/ExecStart=/ s|-l \/tmp\/$LFILE|-l $LDIR\/$LFILE|" $service
       fi
+      ok_msg "$service updated!"
     done
     ### reloading units
     sudo systemctl daemon-reload
